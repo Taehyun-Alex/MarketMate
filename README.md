@@ -1,6 +1,7 @@
 # Overview
 
 **Project Title:** MarketMate
+
 **Description:** Cross platform mobile application that compares grocery prices across Australian supermarkets to help consumers find the best deals.
 
 ## Features
