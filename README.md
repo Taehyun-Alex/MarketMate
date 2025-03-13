@@ -10,10 +10,11 @@
     - Cheapest store highlight
 
 ## Programming softwares/languages used:
-    - Dart
-    - Flutter
-    - Firebase
-    - etc
+    **Dart**
+    **Flutter** - Mobile development
+    **Firebase** - Backend & database
+    **etc**
+    
 ## Installation guide
 ...
 
