@@ -37,7 +37,7 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Search for Products"),
+        title: const Text("MarketMate"),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
