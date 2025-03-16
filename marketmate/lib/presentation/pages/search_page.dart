@@ -1,36 +1,23 @@
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:flutter/material.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key, required String title});
-
   @override
   State<SearchPage> createState() => _SearchPageState();
 }
 
 class _SearchPageState extends State<SearchPage> {
-  final TextEditingController _searchController = TextEditingController();
+  List<dynamic> products = [];
+  TextEditingController searchController = TextEditingController();
 
-  List<Map<String, dynamic>> allProducts = [
-    {"name": "Milk", "supermarket": "Coles", "price": 3.50},
-    {"name": "Milk", "supermarket": "Woolworths", "price": 3.20},
-    {"name": "Milk", "supermarket": "Aldi", "price": 2.90},
-    {"name": "Eggs", "supermarket": "Coles", "price": 5.00},
-    {"name": "Eggs", "supermarket": "Woolworths", "price": 4.80},
-    {"name": "Eggs", "supermarket": "Aldi", "price": 4.20},
-  ];
-
-  List<Map<String, dynamic>> filteredProducts = [];
-
-  void _searchProducts(String query) {
-    setState(() {
-      filteredProducts = allProducts
-          .where((product) =>
-              product["name"].toLowerCase().contains(query.toLowerCase()))
-          .toList();
-
-      // Sort by price (cheapest first)
-      filteredProducts.sort((a, b) => a["price"].compareTo(b["price"]));
-    });
+  Future<void> fetchData(String query) async {
+    final response = await http.get(Uri.parse("http://localhost:5000/scrape?query=$query"));
+    if (response.statusCode == 200) {
+      setState(() {
+        products = json.decode(response.body);
+      });
+    }
   }
 
   @override
@@ -45,41 +32,31 @@ class _SearchPageState extends State<SearchPage> {
           children: [
             // Search Bar
             TextField(
-              controller: _searchController,
+              controller: searchController,
               decoration: InputDecoration(
-                hintText: "Search for groceries...",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                prefixIcon: const Icon(Icons.search),
-              ),
-              onChanged: _searchProducts, // Calls function on typing
-            ),
-            const SizedBox(height: 16),
+                labelText: "Search Product",
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.search),
+                  onPressed: () {
+                    fetchData(searchController.text); // Fetch products
+                  },
+                ),
+              )),
 
             // Search Results List
             Expanded(
               child: ListView.builder(
-                itemCount: filteredProducts.length,
+                itemCount: products.length,
                 itemBuilder: (context, index) {
-                  final product = filteredProducts[index];
-                  final bool isCheapest = (index == 0); // First item is cheapest
-
                   return ListTile(
-                    title: Text(
-                      "${product["name"]} - ${product["supermarket"]}",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: isCheapest ? Colors.green : Colors.black, // Highlight cheapest
-                      ),
-                    ),
-                    subtitle: Text("\$${product["price"].toStringAsFixed(2)}"),
-                  );
-                },
+                  title: Text(products[index]['name']),
+                  subtitle: Text("${products[index]['supermarket']} - \$${products[index]['price']}"),
+                );
+  })
               ),
-            ),
           ],
-        ),
       ),
-    );
+    ));
   }
 }
 
