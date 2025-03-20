@@ -12,11 +12,17 @@ class _SearchPageState extends State<SearchPage> {
   TextEditingController searchController = TextEditingController();
 
   Future<void> fetchData(String query) async {
-    final response = await http.get(Uri.parse("http://localhost:5000/scrape?query=$query"));
-    if (response.statusCode == 200) {
-      setState(() {
-        products = json.decode(response.body);
-      });
+    try {
+      final response = await http.get(Uri.parse("http://10.0.2.2:5000/scrape?query=$query")); // Use 10.0.2.2 for Emulator
+      if (response.statusCode == 200) {
+        setState(() {
+          products = json.decode(response.body);
+        });
+      } else {
+        print("Error: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Failed to load data: $e");
     }
   }
 
@@ -41,26 +47,26 @@ class _SearchPageState extends State<SearchPage> {
                     fetchData(searchController.text); // Fetch products
                   },
                 ),
-              )),
+              ),
+            ),
 
             // Search Results List
             Expanded(
-              child: ListView.builder(
-                itemCount: products.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                  title: Text(products[index]['name']),
-                  subtitle: Text("${products[index]['supermarket']} - \$${products[index]['price']}"),
-                );
-  })
-              ),
+              child: products.isEmpty
+                  ? Center(child: Text("No products found"))
+                  : ListView.builder(
+                      itemCount: products.length,
+                      itemBuilder: (context, index) {
+                        return ListTile(
+                          title: Text(products[index]['name']),
+                          subtitle: Text("${products[index]['supermarket']} - \$${products[index]['price']}"),
+                        );
+                      },
+                    ),
+            ),
           ],
+        ),
       ),
-    ));
+    );
   }
 }
-
-
-
-
-

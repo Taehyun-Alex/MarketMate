@@ -1,42 +1,52 @@
-import requests
-from bs4 import BeautifulSoup
-from flask import Flask, jsonify, request
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+import time
 
-app = Flask(__name__)
+# Set up Selenium WebDriver with headless mode (no browser window)
+options = Options()
+options.add_argument("--headless")  # Run in the background without a browser window
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
-def scrape_supermarket(search_query):
-    url = f"https://www.woolworths.com.au/shop/search/products?searchTerm={search_query}"
-    headers = {
-    "User-Agent": "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-}
+def scrape_woolworths(query):
+    url = f"https://www.woolworths.com.au/shop/search/products?searchTerm={query}"
+
+    # Open the page
+    driver.get(url)
+    time.sleep(5)  # Give time for JavaScript to load content
+
+    # Find product elements (adjust class names if needed)
+    products = driver.find_elements(By.CLASS_NAME, "ng-star-inserted")
     
-    response = requests.get(url, headers=headers)
+    # Extract product details
+    product_list = []
+    for product in products:
+        try:
+            name = product.find_element(By.CLASS_NAME, "title").text
+            price = product.find_element(By.CLASS_NAME, "primary").text
+            link = product.find_element(By.CLASS_NAME, "product-title-link").get_attribute("href")
+            
+            product_list.append({
+                "name": name,
+                "price": price,
+                "link": link
+            })
+        except Exception as e:
+            print(f"Skipping product due to error: {e}")
 
-    print(response.text) 
+    # Close the browser after scraping
+    driver.quit()
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    return product_list
 
-    products = []
+# Scrape products based on the search query
+products = scrape_woolworths("chocolate")
 
-    for item in soup.select(".ng-tns-c865356747-6 product-grid-v2--tile ng-star-inserted"):
-        name = item.select_one(".title").text.strip()
-        price_text = item.select_one(".primary").text.strip()
-        price = float(price_text.replace("$", ""))
-        supermarket = "Woolworths"
-
-        products.append({"name": name, "price": price, "supermarket": supermarket})
-
-    return products
-
-@app.route("/scrape", methods=["GET"])
-def scrape():
-    search_query = request.args.get("query")
-    if not search_query:
-        return jsonify({"error": "Missing search query"}), 400
-    
-    data = scrape_supermarket(search_query)
-    sorted_data = sorted(data, key=lambda x: x["price"])
-    return jsonify(sorted_data)
-
-if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+# Print results
+if products:
+    for p in products:
+        print(f"Name: {p['name']}\nPrice: {p['price']}\nLink: {p['link']}\n{'-'*50}")
+else:
+    print("No products found.")
