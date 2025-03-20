@@ -12,17 +12,11 @@ class _SearchPageState extends State<SearchPage> {
   TextEditingController searchController = TextEditingController();
 
   Future<void> fetchData(String query) async {
-    try {
-      final response = await http.get(Uri.parse("http://10.0.2.2:5000/scrape?query=$query")); // Use 10.0.2.2 for Emulator
-      if (response.statusCode == 200) {
-        setState(() {
-          products = json.decode(response.body);
-        });
-      } else {
-        print("Error: ${response.statusCode}");
-      }
-    } catch (e) {
-      print("Failed to load data: $e");
+    final response = await http.get(Uri.parse("http://127.0.0.1:5000/scrape?query=$query"));
+    if (response.statusCode == 200) {
+      setState(() {
+        products = json.decode(response.body);
+      });
     }
   }
 
