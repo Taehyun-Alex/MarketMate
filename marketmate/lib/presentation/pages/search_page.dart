@@ -12,7 +12,7 @@ class _SearchPageState extends State<SearchPage> {
   TextEditingController searchController = TextEditingController();
 
   Future<void> fetchData(String query) async {
-    final response = await http.get(Uri.parse("http://localhost:5000/scrape?query=$query"));
+    final response = await http.get(Uri.parse("http://127.0.0.1:5000/scrape?query=$query"));
     if (response.statusCode == 200) {
       setState(() {
         products = json.decode(response.body);

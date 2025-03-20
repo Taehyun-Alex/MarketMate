@@ -1,30 +1,50 @@
-import requests
-from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 from flask import Flask, jsonify, request
+import time
 
 app = Flask(__name__)
 
 def scrape_supermarket(search_query):
-    url = f"https://www.woolworths.com.au/shop/search/products?searchTerm={search_query}"
-    headers = {
-    "User-Agent": "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-}
+    url = f"https://www.coles.com.au/search/products?q={search_query}"
     
-    response = requests.get(url, headers=headers)
+    # Set up Selenium WebDriver
+    options = Options()
+    options.add_argument("--headless")  # Run Chrome in headless mode (no GUI)
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.5481.78 Safari/537.36")
 
-    print(response.text) 
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    # Initialize WebDriver
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver.get(url)
+    
+    # Wait for JavaScript to load
+    time.sleep(5)
 
+    print(driver.page_source) 
     products = []
 
-    for item in soup.select(".ng-tns-c865356747-6 product-grid-v2--tile ng-star-inserted"):
-        name = item.select_one(".title").text.strip()
-        price_text = item.select_one(".primary").text.strip()
-        price = float(price_text.replace("$", ""))
-        supermarket = "Woolworths"
+    # Find product elements (Fixed CSS selector)
+    product_elements = driver.find_elements(By.CSS_SELECTOR, ".sc-6831e1f3-8.cppZxr.coles-targeting-ProductTileProductTileWrapper")
 
-        products.append({"name": name, "price": price, "supermarket": supermarket})
+    for item in product_elements:
+        try:
+            name = item.find_element(By.CSS_SELECTOR, ".LinesEllipsis.product__title").text.strip()
+            price_text = item.find_element(By.CSS_SELECTOR, ".price__value").text.strip()
+            price = float(price_text.replace("$", "").replace(",", ""))
+            supermarket = "Coles"
+
+            products.append({"name": name, "price": price, "supermarket": supermarket})
+        except Exception as e:
+            print(f"Skipping item due to error: {e}")
+
+    driver.quit()  # Close the browser
 
     return products
 
@@ -33,10 +53,13 @@ def scrape():
     search_query = request.args.get("query")
     if not search_query:
         return jsonify({"error": "Missing search query"}), 400
-    
+
     data = scrape_supermarket(search_query)
-    sorted_data = sorted(data, key=lambda x: x["price"])
-    return jsonify(sorted_data)
+    
+    print("Scraped Data:", data)  # Debugging
+    
+
+    return jsonify(data if data else [])
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
